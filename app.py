@@ -1,53 +1,51 @@
 #alle nødvendige moduler ligger under, husk å installere på forhånd med brew/pip3!
 from flask import Flask, render_template, request, redirect
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import json
+import os
 
 app = Flask(__name__)
-#Her intializer du MariaDB databasen
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mariadb+pymysql://brukernavn123:123@127.0.0.1/todo'
-app.config['SECRET_KEY'] = '123' #Passordet til MariaDB
-# Lager en variabel for SQLalchemy
-db = SQLAlchemy(app)
+app.config['SECRET_KEY'] = '123'
 
-class Todo(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200), nullable=False)
-    date_created = db.Column(db.DateTime, default=datetime.utcnow)
+# File to store tasks
+TASKS_FILE = 'tasks.json'
 
-    def __repr__(self):
-        return '<Task %r>' % self.id
+def load_tasks():
+    if os.path.exists(TASKS_FILE):
+        with open(TASKS_FILE, 'r') as f:
+            return json.load(f)
+    return []
 
-#Routen for å legge til tasks, bruker port 8000
-#Den henter info fra formen som ligger i index, bruker id for å identifisere
+def save_tasks(tasks):
+    with open(TASKS_FILE, 'w') as f:
+        json.dump(tasks, f)
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         task_content = request.form['content']
-        new_task = Todo(content=task_content)
+        tasks = load_tasks()
         
-        try:
-            db.session.add(new_task)
-            db.session.commit()
-            return redirect('/')
-        except:
-            return 'There was an issue adding your task'
+        # Create new task
+        new_task = {
+            'id': len(tasks) + 1,
+            'content': task_content,
+            'date_created': datetime.now().strftime('%Y-%m-%d')
+        }
+        
+        tasks.append(new_task)
+        save_tasks(tasks)
+        return redirect('/')
     else:
-        tasks = Todo.query.order_by(Todo.date_created).all()
+        tasks = load_tasks()
         return render_template('index.html', tasks=tasks)
 
-#Routen for å slette tasks
-#Hvis den ikke møter requirement så for du bare 404 error
 @app.route('/delete/<int:id>')
 def delete(id):
-    task_to_delete = Todo.query.get_or_404(id)
-
-    try:
-        db.session.delete(task_to_delete)
-        db.session.commit()
-        return redirect('/')
-    except:
-        return 'There was a problem deleting that task'
+    tasks = load_tasks()
+    tasks = [task for task in tasks if task['id'] != id]
+    save_tasks(tasks)
+    return redirect('/')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)
