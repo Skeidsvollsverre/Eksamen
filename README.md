@@ -13,6 +13,8 @@ Hvordan hoste nettsiden din på apache2
 
 Tips: 
 •	Du kan endre hvilken fil den kjører webserveren fra ved å bruke nano og skrive sudo nano /etc/apache2/apache2.conf
+
 •	Ta utgangspunkt i at den bruker et spesifikt navn for index så vis du har skrevet index med stor I så kan det hende at den ikke finner riktig fil.
+
 •	Lær deg viktige kommandoer som mv, rm, cat, touch for å kunne gjøre endringer og flytte ting i terminalen
 
